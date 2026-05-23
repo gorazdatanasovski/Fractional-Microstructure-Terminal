@@ -432,10 +432,18 @@ function renderRiskTelemetry(riskData) {
                 width: 1,
                 fill: (u, seriesIdx) => {
                     let ctx = u.ctx;
-                    let gradient = ctx.createLinearGradient(0, u.bbox.top, 0, u.bbox.top + u.bbox.height);
-                    gradient.addColorStop(0, "rgba(220, 20, 60, 0.05)");
-                    gradient.addColorStop(1, "rgba(220, 20, 60, 0.4)");
-                    return gradient;
+                    let bbox = u.bbox;
+                    if (!bbox || bbox.height === 0 || bbox.top === undefined) {
+                        return "rgba(220, 20, 60, 0.2)";
+                    }
+                    try {
+                        let gradient = ctx.createLinearGradient(0, bbox.top, 0, bbox.top + bbox.height);
+                        gradient.addColorStop(0, "rgba(220, 20, 60, 0.05)");
+                        gradient.addColorStop(1, "rgba(220, 20, 60, 0.4)");
+                        return gradient;
+                    } catch (e) {
+                        return "rgba(220, 20, 60, 0.2)";
+                    }
                 }
             },
             {
@@ -469,7 +477,7 @@ function renderRiskTelemetry(riskData) {
         ]
     };
     
-    const chart = new uPlot(opts, [ts, mdd, mddLower, mddUpper], container);
+    const chart = new uPlot(opts, [ts, new Float64Array(mdd), new Float64Array(mddLower), new Float64Array(mddUpper)], container);
     return chart;
 }
 function renderLatencyProfiler(latData) {
