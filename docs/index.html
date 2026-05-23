@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractional Microstructure Terminal</title>
+    <!-- Plotly.js (for Telemetry) & uPlot (for WebGL/Canvas Master Chart) -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/uplot/dist/uPlot.min.css">
+    <script src="https://unpkg.com/uplot/dist/uPlot.iife.min.js"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,15 90,85 10,85' fill='none' stroke='%2300FFFF' stroke-width='8'/></svg>" type="image/svg+xml">
+</head>
+<body>
+    <div class="linear-stack">
+        
+        <!-- Header Strip -->
+        <header class="terminal-header">
+            <div class="brand">
+                <h1 class="terminal-title">FRACTIONAL MICROSTRUCTURE TERMINAL</h1>
+            </div>
+            <div id="system-telemetry" class="telemetry-bar">
+                <!-- Populated by JS -->
+                <span>AWAITING TELEMETRY...</span>
+            </div>
+        </header>
+
+        <!-- Master Charting Canvas -->
+        <main id="container-master" class="glass-container kinetic-item" data-chart-type="master">
+            <div class="container-header">
+                <h2 class="matrix-title">EQUITY MATRIX</h2>
+                <div id="equity-legend" class="telemetry-bar">
+                    <span class="stat-label">REALIZED:</span><span class="stat-value val-realized" style="margin-right: 15px">$996,352.27</span>
+                    <span class="stat-label">UPPER:</span><span class="stat-value val-theoretical" style="margin-right: 15px">$996,424.12</span>
+                    <span class="stat-label">LOWER:</span><span class="stat-value val-theoretical">$996,422.62</span>
+                </div>
+            </div>
+            <div id="equity-chart" class="webgl-canvas"></div>
+        </main>
+
+        <!-- Scroll Indicator -->
+        <div class="scroll-prompt kinetic-item">
+            <span class="prompt-text">SCROLL TO INITIALIZE</span>
+            <div class="prompt-arrow">↓</div>
+        </div>
+
+        <!-- 3D Optimization Surface -->
+        <section id="container-optimization" class="glass-container kinetic-item" data-chart-type="optimization">
+            <div class="container-header">
+                <h2 class="matrix-title">OPTIMIZATION SURFACE</h2>
+                <div id="optimization-legend" class="telemetry-bar"></div>
+            </div>
+            <div id="optimization-matrix" class="webgl-canvas"></div>
+        </section>
+
+        <!-- Phase 4: Risk Telemetry Canvas -->
+        <div id="container-risk" class="glass-container kinetic-item" data-chart-type="risk">
+            <div class="container-header">
+                <h2 class="matrix-title">RISK TOPOLOGY</h2>
+                <div id="risk-legend" class="telemetry-bar"></div>
+            </div>
+            <div id="risk-topology" class="webgl-canvas"></div>
+        </div>
+        
+        <!-- Phase 6: Hardware Latency Profiler -->
+        <div id="container-latency" class="glass-container kinetic-item" data-chart-type="latency">
+            <div class="container-header">
+                <h2 class="matrix-title">SIMD LATENCY</h2>
+                <div id="latency-legend" class="telemetry-bar"></div>
+            </div>
+            <div id="latency-profiler" class="webgl-canvas"></div>
+        </div>
+
+        <!-- Phase 7: HJB Optimal Control Profiler -->
+        <div id="container-hjb" class="glass-container kinetic-item" data-chart-type="hjb">
+            <div class="container-header">
+                <h2 class="matrix-title">HJB OPTIMAL CONTROL</h2>
+                <div id="hjb-legend" class="telemetry-bar">
+                    <span class="stat-label">PHYSICAL:</span><span class="stat-value val-realized" style="margin-right: 15px">654.242</span>
+                    <span class="stat-label">RESERVATION:</span><span class="stat-value val-theoretical" style="margin-right: 15px">654.240</span>
+                    <span class="stat-label">SPREAD:</span><span class="stat-value val-theoretical" style="margin-right: 15px">0.002</span>
+                    <span class="stat-label">INVENTORY:</span><span class="stat-value" style="color: #FF4D6D">10</span>
+                </div>
+            </div>
+            <div id="hjb-profiler" class="webgl-canvas"></div>
+        </div>
+
+        <!-- Phase 8: Hawkes Process Adverse Selection Heatmap -->
+        <div id="container-hawkes" class="glass-container kinetic-item" data-chart-type="hawkes">
+            <div class="container-header">
+                <h2 class="matrix-title">HAWKES ADVERSE SELECTION</h2>
+                <div id="hawkes-legend" class="telemetry-bar"></div>
+            </div>
+            <div id="hawkes-profiler" class="webgl-canvas"></div>
+        </div>
+
+    </div>
+    <div class="terminal-watermark">&copy; 2026 Gorazd Atanasovski. All Rights Reserved.</div>
+    <script src="app.js?v=9"></script>
+</body>
+</html>
