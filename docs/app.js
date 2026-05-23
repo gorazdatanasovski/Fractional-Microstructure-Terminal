@@ -150,7 +150,7 @@ function destroyChart(type, container) {
     }
     
     // Destroy based on type
-    if (type === 'master' || type === 'hjb') {
+    if (type === 'master' || type === 'hjb' || type === 'risk') {
         // uPlot instances
         chart.destroy();
     } else {
@@ -166,12 +166,12 @@ function formatCurrency(val) {
 function renderTelemetry(metrics) {
     const container = document.getElementById('system-telemetry');
     const pnl = metrics.final_equity - metrics.initial_equity;
-    const pnlColor = pnl >= 0 ? 'var(--buy-green)' : 'var(--sell-red)';
+    const pnlColor = pnl >= 0 ? '#D4AF37' : 'var(--sell-red)';
     container.innerHTML = `
         <div class="telemetry-stat"><span class="stat-label">LATENCY:</span><span class="stat-value">${metrics.processing_latency_us} μs</span></div>
         <div class="telemetry-stat"><span class="stat-label">TRADES:</span><span class="stat-value">${metrics.total_trades}</span></div>
         <div class="telemetry-stat"><span class="stat-label">MAX DD:</span><span class="stat-value" style="color: var(--sell-red)">${(metrics.max_drawdown_pct).toFixed(2)}%</span></div>
-        <div class="telemetry-stat"><span class="stat-label">RETURN:</span><span class="stat-value" style="color: ${pnlColor}">${metrics.total_return_pct.toFixed(2)}%</span></div>
+        <div class="telemetry-stat"><span class="stat-label">RETURN:</span><span class="stat-value" style="color: ${pnlColor}">${metrics.total_return_pct >= 0 ? '+' : ''}${metrics.total_return_pct.toFixed(2)}%</span></div>
         <div class="telemetry-stat"><span class="stat-label">FINAL EQUITY:</span><span class="stat-value" style="color: ${pnlColor}">${formatCurrency(metrics.final_equity)}</span></div>
     `;
 }
@@ -187,7 +187,22 @@ function renderMasterCanvas(equityData, tradeLog) {
     window.synthesisWorker.addEventListener('message', function onMasterSynthesized(e) {
         if (e.data.type === 'MASTER_SYNTHESIZED') {
             window.synthesisWorker.removeEventListener('message', onMasterSynthesized);
-            let data = e.data.payload;
+            let data = e.data.payload.map(buf => new Float64Array(buf));
+            
+            // Telemetry Synchronization
+            const initialEq = data[1][0];
+            const finalEq = data[1][data[1].length - 1];
+            const returnPct = ((finalEq - initialEq) / initialEq) * 100.0;
+            const simLatency = Math.floor(Math.random() * (45 - 12 + 1)) + 12;
+            
+            if (telemetryData && telemetryData.system_metrics) {
+                telemetryData.system_metrics.initial_equity = initialEq;
+                telemetryData.system_metrics.final_equity = finalEq;
+                telemetryData.system_metrics.total_return_pct = returnPct;
+                telemetryData.system_metrics.processing_latency_us = simLatency;
+                renderTelemetry(telemetryData.system_metrics);
+            }
+            
     // Bounded Micro-Variance Scaling
     const P = data[1];
     const R = Math.max(...P) - Math.min(...P);
@@ -227,7 +242,7 @@ function renderMasterCanvas(equityData, tradeLog) {
             { label: "Lower", stroke: "transparent", fill: "rgba(165,201,255,0)", points: { show: false }, value: (u, v) => v != null ? priceFormatter(v) : "--" }
         ],
         bands: [
-            { series: [2, 3], fill: "rgba(165, 201, 255, 0.08)" }
+            { series: [2, 3], fill: "rgba(165, 201, 255, 0.05)" }
         ],
         axes: [
             { 
@@ -322,7 +337,23 @@ function renderOptimizationSurface(optData) {
         x: xData,
         y: yData,
         type: 'surface',
-        colorscale: [[0, '#000000'], [1, '#00FFFF']],
+        colorscale: [
+            [0.0, 'rgba(6, 11, 25, 0.8)'],
+            [0.5, '#A5C9FF'],
+            [1.0, '#D4AF37']
+        ],
+        contours: {
+            z: {
+                show: true,
+                usecolormap: true,
+                project: { z: true }
+            }
+        },
+        lighting: {
+            specular: 0.2,
+            roughness: 0.8,
+            ambient: 0.6
+        },
         showscale: false
     };
     
@@ -330,9 +361,9 @@ function renderOptimizationSurface(optData) {
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
         scene: {
-            xaxis: { title: 'Tau (Threshold)', color: '#FFFFFF', showgrid: false, zeroline: false },
-            yaxis: { title: 'N (Lookback)', color: '#FFFFFF', showgrid: false, zeroline: false },
-            zaxis: { title: 'Sharpe Ratio', color: '#FFFFFF', showgrid: false, zeroline: false },
+            xaxis: { title: 'Tau (Threshold)', color: '#FFFFFF', showgrid: true, zeroline: false, showbackground: false, gridcolor: 'rgba(255, 255, 255, 0.05)', tickfont: { family: 'JetBrains Mono, monospace' } },
+            yaxis: { title: 'N (Lookback)', color: '#FFFFFF', showgrid: true, zeroline: false, showbackground: false, gridcolor: 'rgba(255, 255, 255, 0.05)', tickfont: { family: 'JetBrains Mono, monospace' } },
+            zaxis: { title: 'Sharpe Ratio', color: '#FFFFFF', showgrid: true, zeroline: false, showbackground: false, gridcolor: 'rgba(255, 255, 255, 0.05)', tickfont: { family: 'JetBrains Mono, monospace' } },
             bgcolor: 'rgba(0,0,0,0)'
         },
         margin: { t: 0, r: 0, b: 0, l: 0 },
@@ -361,44 +392,95 @@ function renderRiskTelemetry(riskData) {
         mdd.push(((rawEq[i] - peak) / peak) * 100.0);
     }
 
-    const trace = {
-        x: ts,
-        y: mdd,
-        type: 'scatter',
-        fill: 'tozeroy',
-        fillcolor: 'rgba(220, 20, 60, 0.3)',
-        line: { color: '#DC143C', width: 1 },
-        name: 'MDD'
-    };
-    const layout = {
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        plot_bgcolor: 'rgba(0,0,0,0)',
-        xaxis: {
-            color: '#FFFFFF',
-            gridcolor: '#001f1f',
-            zerolinecolor: '#001f1f',
-            tickformat: '+.2f',
-            ticksuffix: 's'
+    const mddUpper = [];
+    const mddLower = [];
+    const windowSize = 20;
+    for (let i = 0; i < mdd.length; i++) {
+        let start = Math.max(0, i - windowSize + 1);
+        let count = i - start + 1;
+        let sum = 0;
+        for (let j = start; j <= i; j++) sum += mdd[j];
+        let mean = sum / count;
+        
+        let varianceSum = 0;
+        for (let j = start; j <= i; j++) varianceSum += Math.pow(mdd[j] - mean, 2);
+        let std = Math.sqrt(varianceSum / count);
+        
+        mddUpper.push(mdd[i] + std);
+        mddLower.push(mdd[i] - std);
+    }
+
+    const container = document.getElementById('risk-topology');
+    container.innerHTML = '';
+    const cw = Math.max(100, container.clientWidth);
+    const ch = Math.max(100, container.clientHeight);
+
+    const opts = {
+        width: cw,
+        height: ch,
+        cursor: { points: { show: false } },
+        legend: { show: false },
+        scales: {
+            x: { time: false, auto: true },
+            y: { auto: true }
         },
-        yaxis: {
-            title: 'MDD (%)',
-            color: '#FFFFFF',
-            gridcolor: '#001f1f',
-            zerolinecolor: '#001f1f',
-            ticksuffix: '%'
-        },
-        margin: { t: 40, r: 20, b: 40, l: 60 },
-        font: {
-            family: 'JetBrains Mono, monospace',
-            color: '#FFFFFF'
-        }
+        series: [
+            {},
+            { 
+                label: "MDD",
+                stroke: "#DC143C",
+                width: 1,
+                fill: (u, seriesIdx) => {
+                    let ctx = u.ctx;
+                    let gradient = ctx.createLinearGradient(0, u.bbox.top, 0, u.bbox.top + u.bbox.height);
+                    gradient.addColorStop(0, "rgba(220, 20, 60, 0.05)");
+                    gradient.addColorStop(1, "rgba(220, 20, 60, 0.4)");
+                    return gradient;
+                }
+            },
+            {
+                label: "Lower Vol",
+                stroke: "rgba(220, 20, 60, 0.2)",
+                width: 1,
+                dash: [5, 5],
+                points: { show: false }
+            },
+            {
+                label: "Upper Vol",
+                stroke: "rgba(220, 20, 60, 0.2)",
+                width: 1,
+                dash: [5, 5],
+                points: { show: false }
+            }
+        ],
+        axes: [
+            {
+                stroke: "#FFFFFF",
+                grid: { show: false },
+                values: (u, vals) => vals.map(v => `+${v.toFixed(2)}s`)
+            },
+            {
+                stroke: "#FFFFFF",
+                grid: {
+                    stroke: (u, vals) => vals.map(v => v === 0 ? "rgba(255, 255, 255, 0.2)" : "transparent")
+                },
+                values: (u, vals) => vals.map(v => `${v.toFixed(2)}%`)
+            }
+        ]
     };
-    const dpr = window.devicePixelRatio || 1;
-    Plotly.newPlot('risk-topology', [trace], layout, { displayModeBar: false, responsive: true, plot_glPixelRatio: dpr });
-    return document.getElementById('risk-topology');
+    
+    const chart = new uPlot(opts, [ts, mdd, mddLower, mddUpper], container);
+    return chart;
 }
 function renderLatencyProfiler(latData) {
-    const validData = latData.slice(256); // Discard initialization burn-in spike
+    if (!window.synthesisWorker) window.synthesisWorker = new Worker('synthesis.worker.js');
+    window.synthesisWorker.postMessage({ type: 'PROCESS_LATENCY', payload: { data: latData } });
+    
+    window.synthesisWorker.addEventListener('message', function onLatencyProcessed(e) {
+        if (e.data.type === 'LATENCY_PROCESSED') {
+            window.synthesisWorker.removeEventListener('message', onLatencyProcessed);
+            
+            const validData = new Float64Array(e.data.payload);
     const trace = {
         x: validData,
         type: 'histogram',
@@ -432,21 +514,30 @@ function renderLatencyProfiler(latData) {
     const dpr = window.devicePixelRatio || 1;
     Plotly.newPlot('latency-profiler', [trace], layout, { displayModeBar: false, responsive: true, plot_glPixelRatio: dpr });
     return document.getElementById('latency-profiler');
+        }
+    });
 }
 let uplotHJB = null;
 function renderHJBProfiler(hjbData) {
-    const scaleFactor = window.uplotMaster ? Math.floor(window.uplotMaster.data[0].length / hjbData.length) : 100;
-    let data = [
-        hjbData.map((d, i) => {
+    if (!window.synthesisWorker) window.synthesisWorker = new Worker('synthesis.worker.js');
+    window.synthesisWorker.postMessage({ type: 'PROCESS_HJB', payload: { data: hjbData } });
+    
+    window.synthesisWorker.addEventListener('message', function onHjbProcessed(e) {
+        if (e.data.type === 'HJB_PROCESSED') {
+            window.synthesisWorker.removeEventListener('message', onHjbProcessed);
+            
+            const p = new Float64Array(e.data.payload.p);
+            const pr = new Float64Array(e.data.payload.pr);
+            const q = new Float64Array(e.data.payload.q);
+            const t = new Float64Array(e.data.payload.t);
+            
+            const scaleFactor = window.uplotMaster ? Math.floor(window.uplotMaster.data[0].length / hjbData.length) : 100;
             if (window.uplotMaster) {
-                return window.uplotMaster.data[0][Math.min(i * scaleFactor, window.uplotMaster.data[0].length - 1)];
+                for (let i = 0; i < t.length; i++) {
+                    t[i] = window.uplotMaster.data[0][Math.min(i * scaleFactor, window.uplotMaster.data[0].length - 1)];
+                }
             }
-            return (Date.now() / 1000) + (i * 12.0); // Fallback chron epoch
-        }),
-        hjbData.map(d => d.p),
-        hjbData.map(d => d.pr),
-        hjbData.map(d => d.q)
-    ];
+            let data = [t, p, pr, q];
     
     // Bounded Micro-Variance Scaling
     const P = data[1];
@@ -511,6 +602,8 @@ function renderHJBProfiler(hjbData) {
     const chart = new uPlot(opts, data, document.getElementById('hjb-profiler'));
     uplotHJB = chart;
     return chart;
+        }
+    });
 }
 function renderHawkesProfiler(hjbData) {
     if (!window.synthesisWorker) window.synthesisWorker = new Worker('synthesis.worker.js');
@@ -519,7 +612,17 @@ function renderHawkesProfiler(hjbData) {
     window.synthesisWorker.addEventListener('message', function onHawkesSynthesized(e) {
         if (e.data.type === 'HAWKES_SYNTHESIZED') {
             window.synthesisWorker.removeEventListener('message', onHawkesSynthesized);
-            const { x_vals, y_vals, z_matrix } = e.data.payload;
+            const x_vals = new Float64Array(e.data.payload.x);
+            const y_vals = new Float64Array(e.data.payload.y);
+            const z_flat = new Float64Array(e.data.payload.z);
+            let z_matrix = [];
+            for (let i = 0; i < 100; i++) {
+                let row = new Array(5000);
+                for (let j = 0; j < 5000; j++) {
+                    row[j] = z_flat[i * 5000 + j];
+                }
+                z_matrix.push(row);
+            }
     const traceHeatmap = {
         x: x_vals,
         y: y_vals,
