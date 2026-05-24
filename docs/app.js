@@ -686,15 +686,24 @@ function renderHawkesProfiler(hjbData) {
                 }
                 z_matrix.push(row);
             }
+            let maxZ = 0;
+            for (let i = 0; i < z_flat.length; i++) {
+                if (z_flat[i] > maxZ) maxZ = z_flat[i];
+            }
+            const zmaxThreshold = maxZ * 0.8;
+
     const traceHeatmap = {
         x: x_vals,
         y: y_vals,
         z: z_matrix,
         type: 'heatmap',
         zsmooth: 'best',
+        zmin: 0,
+        zmax: zmaxThreshold,
         colorscale: [
-            [0.0, '#000000'],
-            [1.0, '#FF00FF']
+            [0.0, 'rgba(0, 0, 0, 1)'],
+            [0.5, 'rgba(100, 10, 30, 0.5)'],
+            [1.0, '#DC143C']
         ],
         showscale: false
     };
@@ -703,17 +712,23 @@ function renderHawkesProfiler(hjbData) {
         plot_bgcolor: 'rgba(0,0,0,0)',
         xaxis: {
             title: 'Microstructure Time',
-            color: '#FFFFFF',
+            color: 'rgba(255, 255, 255, 0.2)',
             gridcolor: 'rgba(0,0,0,0)',
             zerolinecolor: 'rgba(0,0,0,0)',
-            showline: false
+            showline: false,
+            tickprefix: '+',
+            ticksuffix: 's',
+            tickfont: { color: 'rgba(255, 255, 255, 0.4)' },
+            titlefont: { color: '#FFFFFF' }
         },
         yaxis: {
             title: 'Log Dev (Spread)',
-            color: '#FFFFFF',
+            color: 'rgba(255, 255, 255, 0.2)',
             gridcolor: 'rgba(0,0,0,0)',
             zerolinecolor: 'rgba(0,0,0,0)',
-            showline: false
+            showline: false,
+            tickfont: { color: 'rgba(255, 255, 255, 0.4)' },
+            titlefont: { color: '#FFFFFF' }
         },
         margin: { t: 40, r: 60, b: 40, l: 60 },
         font: {

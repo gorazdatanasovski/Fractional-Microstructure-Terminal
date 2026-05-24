@@ -72,7 +72,7 @@ self.onmessage = function(e) {
             let y_vals = new Float64Array(100);
             
             for (let x = 0; x < 5000; x++) {
-                x_vals[x] = x;
+                x_vals[x] = x * 0.120;
             }
             for (let y = 0; y < 100; y++) {
                 let mappedY = -5.0 + (y / 100) * 10.0;
