@@ -415,6 +415,14 @@ function renderRiskTelemetry(riskData) {
     const cw = cssWidth;
     const ch = cssHeight;
 
+    const marginLeft = 50;
+    const marginBottom = 30;
+    const marginTop = 15;
+    const paddingRight = 10;
+    
+    const plotWidth = cw - marginLeft - paddingRight;
+    const plotHeight = ch - marginTop - marginBottom;
+
     const mdd = riskData.mdd;
     const len = mdd.length;
     if (len === 0) return canvas;
@@ -429,18 +437,18 @@ function renderRiskTelemetry(riskData) {
 
     ctx.clearRect(0, 0, cw, ch);
 
-    const zeroY = ch - ((0 - minMdd) / range) * ch;
+    const zeroY = marginTop;
 
     // Sequence 1: Gridlines
     ctx.lineWidth = 1;
     const yIntervals = 4;
     for (let j = 0; j <= yIntervals; j++) {
         const val = minMdd + (j / yIntervals) * range;
-        const y = ch - ((val - minMdd) / range) * ch;
+        const y = marginTop + plotHeight - ((val - minMdd) / range) * plotHeight;
         
         ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(cw, y);
+        ctx.moveTo(marginLeft, y);
+        ctx.lineTo(marginLeft + plotWidth, y);
         if (j === yIntervals) {
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
         } else {
@@ -451,10 +459,10 @@ function renderRiskTelemetry(riskData) {
 
     const xIntervals = 6;
     for (let j = 0; j <= xIntervals; j++) {
-        const x = (j / xIntervals) * cw;
+        const x = marginLeft + (j / xIntervals) * plotWidth;
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, ch);
+        ctx.moveTo(x, marginTop);
+        ctx.lineTo(x, marginTop + plotHeight);
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
         ctx.stroke();
     }
@@ -462,26 +470,26 @@ function renderRiskTelemetry(riskData) {
     // Sequence 2: Crimson MDD area gradient
     ctx.beginPath();
     for (let i = 0; i < len; i++) {
-        const x = (i / (len - 1)) * cw;
-        const y = ch - ((mdd[i] - minMdd) / range) * ch;
+        const x = marginLeft + (i / (len - 1)) * plotWidth;
+        const y = marginTop + plotHeight - ((mdd[i] - minMdd) / range) * plotHeight;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
     }
-    ctx.lineTo(cw, zeroY);
-    ctx.lineTo(0, zeroY);
+    ctx.lineTo(marginLeft + plotWidth, zeroY);
+    ctx.lineTo(marginLeft, zeroY);
     ctx.closePath();
     
-    const gradient = ctx.createLinearGradient(0, 0, 0, ch);
+    const gradient = ctx.createLinearGradient(0, marginTop, 0, marginTop + plotHeight);
     gradient.addColorStop(0, "rgba(220, 20, 60, 0.05)");
     gradient.addColorStop(1, "rgba(220, 20, 60, 0.4)");
     ctx.fillStyle = gradient;
     ctx.fill();
 
-    // Solid MDD Stroke
+    // Sequence 3: Solid MDD Stroke
     ctx.beginPath();
     for (let i = 0; i < len; i++) {
-        const x = (i / (len - 1)) * cw;
-        const y = ch - ((mdd[i] - minMdd) / range) * ch;
+        const x = marginLeft + (i / (len - 1)) * plotWidth;
+        const y = marginTop + plotHeight - ((mdd[i] - minMdd) / range) * plotHeight;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
     }
@@ -489,7 +497,7 @@ function renderRiskTelemetry(riskData) {
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Sequence 3: Text labels
+    // Sequence 4: Text labels
     ctx.font = '10px "JetBrains Mono", monospace';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
     
@@ -498,27 +506,24 @@ function renderRiskTelemetry(riskData) {
     ctx.textBaseline = 'middle';
     for (let j = 0; j <= yIntervals; j++) {
         const val = minMdd + (j / yIntervals) * range;
-        const y = ch - ((val - minMdd) / range) * ch;
-        let textY = y;
-        if (j === yIntervals) textY += 8;
-        if (j === 0) textY -= 8;
-        ctx.fillText(val.toFixed(2) + '%', 10, textY);
+        const y = marginTop + plotHeight - ((val - minMdd) / range) * plotHeight;
+        ctx.fillText(val.toFixed(2) + '%', 10, y);
     }
 
     // X-Axis Labels
     ctx.textBaseline = 'bottom';
     for (let j = 0; j <= xIntervals; j++) {
-        if (j === 0) continue; // Prevent null origin collision
-        const x = (j / xIntervals) * cw;
+        const x = marginLeft + (j / xIntervals) * plotWidth;
         const seconds = (j / xIntervals) * 600;
-        let textX = x;
-        if (j === xIntervals) {
+        
+        if (j === 0) {
+            ctx.textAlign = 'left';
+        } else if (j === xIntervals) {
             ctx.textAlign = 'right';
-            textX = cw - 4;
         } else {
             ctx.textAlign = 'center';
         }
-        ctx.fillText('+' + seconds.toFixed(0) + 's', textX, ch - 15);
+        ctx.fillText('+' + seconds.toFixed(0) + 's', x, ch - 10);
     }
 
     return canvas;
