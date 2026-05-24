@@ -632,7 +632,16 @@ function renderHJBProfiler(hjbData) {
             { 
                 stroke: "#A5C9FF", 
                 grid: { stroke: "rgba(255,255,255,0.02)" },
+                space: 80, // Native mathematical spacing to prevent column crush
                 values: (u, vals) => vals.map(time => {
+                    const elapsedSeconds = Math.round(time);
+                    // Modulo Interval Filter: Throttles label generation
+                    if (elapsedSeconds % 60 !== 0 && elapsedSeconds !== 0) return '';
+                    
+                    // Typographical Compression: Strip decimals on macroscopic intervals
+                    if (time >= 60) {
+                        return `+${elapsedSeconds}s`;
+                    }
                     return `+${time.toFixed(2)}s`;
                 })
             },
