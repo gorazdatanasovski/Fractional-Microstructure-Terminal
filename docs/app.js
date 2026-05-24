@@ -398,13 +398,22 @@ function renderRiskTelemetry(riskData) {
     if (!riskData) return null;
     
     const container = document.getElementById('risk-topology');
-    container.innerHTML = '<canvas id="risk-canvas" width="1000" height="300" style="width: 100%; height: 100%; display: block;"></canvas>';
+    const rect = container.getBoundingClientRect();
+    const cssWidth = rect.width || 1000;
+    const cssHeight = rect.height || 300;
+
+    container.innerHTML = '<canvas id="risk-canvas" style="width: 100%; height: 100%; display: block;"></canvas>';
 
     const canvas = document.getElementById('risk-canvas');
     const ctx = canvas.getContext('2d');
     
-    const cw = canvas.width;
-    const ch = canvas.height;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = cssWidth * dpr;
+    canvas.height = cssHeight * dpr;
+    ctx.scale(dpr, dpr);
+    
+    const cw = cssWidth;
+    const ch = cssHeight;
 
     const mdd = riskData.mdd;
     const len = mdd.length;
@@ -493,25 +502,23 @@ function renderRiskTelemetry(riskData) {
         let textY = y;
         if (j === yIntervals) textY += 8;
         if (j === 0) textY -= 8;
-        ctx.fillText(val.toFixed(2) + '%', 4, textY);
+        ctx.fillText(val.toFixed(2) + '%', 10, textY);
     }
 
     // X-Axis Labels
     ctx.textBaseline = 'bottom';
     for (let j = 0; j <= xIntervals; j++) {
+        if (j === 0) continue; // Prevent null origin collision
         const x = (j / xIntervals) * cw;
         const seconds = (j / xIntervals) * 600;
         let textX = x;
-        if (j === 0) {
-            ctx.textAlign = 'left';
-            textX = 4;
-        } else if (j === xIntervals) {
+        if (j === xIntervals) {
             ctx.textAlign = 'right';
             textX = cw - 4;
         } else {
             ctx.textAlign = 'center';
         }
-        ctx.fillText('+' + seconds.toFixed(0) + 's', textX, ch - 4);
+        ctx.fillText('+' + seconds.toFixed(0) + 's', textX, ch - 15);
     }
 
     return canvas;
