@@ -119,8 +119,10 @@ self.onmessage = function(e) {
 
     if (type === 'PROCESS_LATENCY') {
         try {
-            const latData = payload.data;
-            const validData = latData.slice(256);
+            let latData = Array.from(payload.data);
+            latData.sort((a, b) => a - b);
+            const cutoff = Math.floor(latData.length * 0.99); // Discard top 1%
+            const validData = latData.slice(0, cutoff);
             let latBuf = new Float64Array(validData);
             self.postMessage({
                 type: 'LATENCY_PROCESSED',

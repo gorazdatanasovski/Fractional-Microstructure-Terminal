@@ -541,8 +541,8 @@ function renderLatencyProfiler(latData) {
         x: validData,
         type: 'histogram',
         marker: { 
-            color: 'rgba(176, 38, 255, 0.7)', 
-            line: { color: '#00FFFF', width: 1 }
+            color: '#A5C9FF', 
+            line: { color: 'rgba(0, 0, 50, 0.5)', width: 1 }
         },
         name: 'Frequency'
     };
@@ -551,19 +551,25 @@ function renderLatencyProfiler(latData) {
         plot_bgcolor: 'rgba(0,0,0,0)',
         xaxis: {
             title: 'CPU Clock Cycles',
-            color: '#FFFFFF',
-            gridcolor: '#001f1f',
-            zerolinecolor: '#001f1f'
+            color: 'rgba(255, 255, 255, 0.2)',
+            tickcolor: 'rgba(255, 255, 255, 0.2)',
+            gridcolor: 'rgba(255, 255, 255, 0.02)',
+            zerolinecolor: 'rgba(255, 255, 255, 0.02)',
+            tickfont: { color: 'rgba(255, 255, 255, 0.4)' },
+            titlefont: { color: '#FFFFFF' }
         },
         yaxis: {
             title: 'Frequency',
-            color: '#FFFFFF',
+            color: 'rgba(255, 255, 255, 0.2)',
+            tickcolor: 'rgba(255, 255, 255, 0.2)',
             gridcolor: 'rgba(255,255,255,0.02)',
-            zerolinecolor: 'rgba(255,255,255,0.02)'
+            zerolinecolor: 'rgba(255,255,255,0.02)',
+            tickfont: { color: 'rgba(255, 255, 255, 0.4)' },
+            titlefont: { color: '#FFFFFF' }
         },
         margin: { t: 40, r: 20, b: 40, l: 60 },
         font: {
-            family: 'Inter, sans-serif',
+            family: 'JetBrains Mono, monospace',
             color: '#FFFFFF'
         }
     };
