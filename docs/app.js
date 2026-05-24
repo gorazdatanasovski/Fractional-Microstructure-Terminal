@@ -154,8 +154,8 @@ function destroyChart(type, container) {
         // uPlot instances
         chart.destroy();
     } else if (type === 'risk') {
-        // Lightweight Charts instance
-        chart.remove();
+        // Native HTML5 Canvas
+        container.innerHTML = '';
     } else {
         // Plotly instances
         Plotly.purge(container.querySelector('.canvas'));
@@ -398,77 +398,69 @@ function renderRiskTelemetry(riskData) {
     if (!riskData) return null;
     
     const container = document.getElementById('risk-topology');
-    container.innerHTML = '';
+    container.innerHTML = '<canvas id="risk-canvas" width="1000" height="300" style="width: 100%; height: 100%; display: block;"></canvas>';
 
-    const chart = LightweightCharts.createChart(container, {
-        width: container.clientWidth || 800,
-        height: container.clientHeight || 400,
-        layout: {
-            background: { type: 'solid', color: 'transparent' },
-            textColor: '#FFFFFF',
-            fontFamily: 'JetBrains Mono, monospace'
-        },
-        grid: {
-            vertLines: { visible: false },
-            horzLines: { visible: false }
-        },
-        rightPriceScale: {
-            borderVisible: false,
-            textColor: '#FFFFFF'
-        },
-        timeScale: {
-            borderVisible: false,
-            timeVisible: true,
-            tickMarkFormatter: (time) => `+${(time * 0.120).toFixed(2)}s`
-        }
-    });
+    const canvas = document.getElementById('risk-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const cw = canvas.width;
+    const ch = canvas.height;
 
-    const mddSeries = chart.addAreaSeries({
-        topColor: 'rgba(220, 20, 60, 0.05)',
-        bottomColor: 'rgba(220, 20, 60, 0.4)',
-        lineColor: '#DC143C',
-        lineWidth: 1
-    });
+    const mdd = riskData.mdd;
+    const len = mdd.length;
+    if (len === 0) return canvas;
 
-    mddSeries.createPriceLine({
-        price: 0.0,
-        color: 'rgba(255, 255, 255, 0.2)',
-        lineWidth: 1,
-        lineStyle: LightweightCharts.LineStyle.Solid,
-        axisLabelVisible: true,
-        title: '0.0%'
-    });
-
-    const upperVolSeries = chart.addLineSeries({
-        color: 'rgba(220, 20, 60, 0.2)',
-        lineWidth: 1,
-        lineStyle: LightweightCharts.LineStyle.Dashed
-    });
-
-    const lowerVolSeries = chart.addLineSeries({
-        color: 'rgba(220, 20, 60, 0.2)',
-        lineWidth: 1,
-        lineStyle: LightweightCharts.LineStyle.Dashed
-    });
-
-    const mddData = [];
-    const upperData = [];
-    const lowerData = [];
-    const len = riskData.ts.length;
-
+    let minMdd = 0;
     for (let i = 0; i < len; i++) {
-        mddData.push({ time: i, value: riskData.mdd[i] });
-        upperData.push({ time: i, value: riskData.mddUpper[i] });
-        lowerData.push({ time: i, value: riskData.mddLower[i] });
+        if (mdd[i] < minMdd) minMdd = mdd[i];
     }
+    
+    minMdd = minMdd * 1.05; // 5% padding
+    const range = 0 - minMdd;
 
-    mddSeries.setData(mddData);
-    upperVolSeries.setData(upperData);
-    lowerVolSeries.setData(lowerData);
+    ctx.clearRect(0, 0, cw, ch);
 
-    chart.timeScale().fitContent();
+    const zeroY = ch - ((0 - minMdd) / range) * ch;
 
-    return chart;
+    // Gradient Fill
+    ctx.beginPath();
+    for (let i = 0; i < len; i++) {
+        const x = (i / (len - 1)) * cw;
+        const y = ch - ((mdd[i] - minMdd) / range) * ch;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.lineTo(cw, zeroY);
+    ctx.lineTo(0, zeroY);
+    ctx.closePath();
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, ch);
+    gradient.addColorStop(0, "rgba(220, 20, 60, 0.05)");
+    gradient.addColorStop(1, "rgba(220, 20, 60, 0.4)");
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // Solid MDD Stroke
+    ctx.beginPath();
+    for (let i = 0; i < len; i++) {
+        const x = (i / (len - 1)) * cw;
+        const y = ch - ((mdd[i] - minMdd) / range) * ch;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = '#DC143C';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Baseline
+    ctx.beginPath();
+    ctx.moveTo(0, zeroY);
+    ctx.lineTo(cw, zeroY);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    return canvas;
 }
 function renderLatencyProfiler(latData) {
     if (!window.synthesisWorker) window.synthesisWorker = new Worker('synthesis.worker.js');
