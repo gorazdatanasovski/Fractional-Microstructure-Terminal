@@ -61,6 +61,7 @@ self.onmessage = function(e) {
             }, [rawTs.buffer, rawEq.buffer, rawUpper.buffer, rawLower.buffer, rawMdd.buffer, rawMddUpper.buffer, rawMddLower.buffer]);
         } catch (err) {
             console.error("Worker Error in SYNTHESIZE_MASTER:", err);
+            self.postMessage({ type: 'WORKER_ERROR', payload: err.stack || err.message });
         }
     }
     

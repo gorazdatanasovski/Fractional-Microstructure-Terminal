@@ -188,6 +188,12 @@ function renderMasterCanvas(equityData, tradeLog) {
     window.synthesisWorker.postMessage({ type: 'SYNTHESIZE_MASTER', payload: { startX: startX_original } });
     
     window.synthesisWorker.addEventListener('message', function onMasterSynthesized(e) {
+        if (e.data.type === 'WORKER_ERROR') {
+            console.error("Worker Error details:", e.data.payload);
+            window.synthesisWorker.removeEventListener('message', onMasterSynthesized);
+            activeCharts.set('master', null);
+            return;
+        }
         if (e.data.type === 'MASTER_SYNTHESIZED') {
             window.synthesisWorker.removeEventListener('message', onMasterSynthesized);
             let data = e.data.payload.map(buf => new Float64Array(buf));
@@ -403,7 +409,7 @@ function renderRiskTelemetry(riskData) {
             fontFamily: 'JetBrains Mono, monospace'
         },
         grid: {
-            vertLines: { color: 'rgba(255, 255, 255, 0.1)' },
+            vertLines: { visible: false },
             horzLines: { visible: false }
         },
         rightPriceScale: {

@@ -131,6 +131,8 @@ body {
 .glass-container[data-chart-type="hawkes"],
 .glass-container[data-chart-type="risk"] {
     overflow: visible;
+    min-height: 400px;
+    flex-grow: 1;
 }
 
 .container-header {
