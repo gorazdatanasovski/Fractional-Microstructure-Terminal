@@ -150,9 +150,12 @@ function destroyChart(type, container) {
     }
     
     // Destroy based on type
-    if (type === 'master' || type === 'hjb' || type === 'risk') {
+    if (type === 'master' || type === 'hjb') {
         // uPlot instances
         chart.destroy();
+    } else if (type === 'risk') {
+        // Lightweight Charts instance
+        chart.remove();
     } else {
         // Plotly instances
         Plotly.purge(container.querySelector('.canvas'));
@@ -195,12 +198,20 @@ function renderMasterCanvas(equityData, tradeLog) {
             const returnPct = ((finalEq - initialEq) / initialEq) * 100.0;
             const simLatency = Math.floor(Math.random() * (45 - 12 + 1)) + 12;
             
-            if (telemetryData && telemetryData.system_metrics) {
-                telemetryData.system_metrics.initial_equity = initialEq;
-                telemetryData.system_metrics.final_equity = finalEq;
-                telemetryData.system_metrics.total_return_pct = returnPct;
-                telemetryData.system_metrics.processing_latency_us = simLatency;
-                renderTelemetry(telemetryData.system_metrics);
+            if (telemetryData) {
+                if (telemetryData.system_metrics) {
+                    telemetryData.system_metrics.initial_equity = initialEq;
+                    telemetryData.system_metrics.final_equity = finalEq;
+                    telemetryData.system_metrics.total_return_pct = returnPct;
+                    telemetryData.system_metrics.processing_latency_us = simLatency;
+                    renderTelemetry(telemetryData.system_metrics);
+                }
+                telemetryData.risk_telemetry = {
+                    ts: data[0],
+                    mdd: data[4],
+                    mddUpper: data[5],
+                    mddLower: data[6]
+                };
             }
             
     // Bounded Micro-Variance Scaling
@@ -378,106 +389,79 @@ function renderOptimizationSurface(optData) {
     return document.getElementById('optimization-matrix');
 }
 function renderRiskTelemetry(riskData) {
-    if (!uplotMaster) return null;
-    const rawTs = uplotMaster.data[0];
-    const rawEq = uplotMaster.data[1];
-    const startX_original = rawTs[0];
+    if (!riskData) return null;
     
-    const ts = rawTs.map(t => t - startX_original);
-    
-    const mdd = [];
-    let peak = rawEq[0];
-    for (let i = 0; i < rawEq.length; i++) {
-        if (rawEq[i] > peak) peak = rawEq[i];
-        mdd.push(((rawEq[i] - peak) / peak) * 100.0);
-    }
-
-    const mddUpper = [];
-    const mddLower = [];
-    const windowSize = 20;
-    for (let i = 0; i < mdd.length; i++) {
-        let start = Math.max(0, i - windowSize + 1);
-        let count = i - start + 1;
-        let sum = 0;
-        for (let j = start; j <= i; j++) sum += mdd[j];
-        let mean = sum / count;
-        
-        let varianceSum = 0;
-        for (let j = start; j <= i; j++) varianceSum += Math.pow(mdd[j] - mean, 2);
-        let std = Math.sqrt(varianceSum / count);
-        
-        mddUpper.push(mdd[i] + std);
-        mddLower.push(mdd[i] - std);
-    }
-
     const container = document.getElementById('risk-topology');
     container.innerHTML = '';
-    const cw = Math.max(100, container.clientWidth);
-    const ch = Math.max(100, container.clientHeight);
 
-    const opts = {
-        width: cw,
-        height: ch,
-        cursor: { points: { show: false } },
-        legend: { show: false },
-        scales: {
-            x: { time: false, auto: true },
-            y: { auto: true }
+    const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth || 800,
+        height: container.clientHeight || 400,
+        layout: {
+            background: { type: 'solid', color: 'transparent' },
+            textColor: '#FFFFFF',
+            fontFamily: 'JetBrains Mono, monospace'
         },
-        series: [
-            {},
-            { 
-                label: "MDD",
-                stroke: "#DC143C",
-                width: 1,
-                fill: (u, seriesIdx) => {
-                    let ctx = u.ctx;
-                    let bbox = u.bbox;
-                    if (!bbox || bbox.height === 0 || bbox.top === undefined) {
-                        return "rgba(220, 20, 60, 0.2)";
-                    }
-                    try {
-                        let gradient = ctx.createLinearGradient(0, bbox.top, 0, bbox.top + bbox.height);
-                        gradient.addColorStop(0, "rgba(220, 20, 60, 0.05)");
-                        gradient.addColorStop(1, "rgba(220, 20, 60, 0.4)");
-                        return gradient;
-                    } catch (e) {
-                        return "rgba(220, 20, 60, 0.2)";
-                    }
-                }
-            },
-            {
-                label: "Lower Vol",
-                stroke: "rgba(220, 20, 60, 0.2)",
-                width: 1,
-                dash: [5, 5],
-                points: { show: false }
-            },
-            {
-                label: "Upper Vol",
-                stroke: "rgba(220, 20, 60, 0.2)",
-                width: 1,
-                dash: [5, 5],
-                points: { show: false }
-            }
-        ],
-        axes: [
-            {
-                stroke: "#FFFFFF",
-                grid: { show: false },
-                values: (u, vals) => vals.map(v => `+${v.toFixed(2)}s`)
-            },
-            {
-                stroke: "#FFFFFF",
-                grid: {
-                    stroke: (u, vals) => vals.map(v => v === 0 ? "rgba(255, 255, 255, 0.2)" : "transparent")
-                },
-                values: (u, vals) => vals.map(v => `${v.toFixed(2)}%`)
-            }
-        ]
-    };
-    
-    const chart = new uPlot(opts, [ts, new Float64Array(mdd), new Float64Array(mddLower), new Float64Array(mddUpper)], container);
+        grid: {
+            vertLines: { color: 'rgba(255, 255, 255, 0.1)' },
+            horzLines: { visible: false }
+        },
+        rightPriceScale: {
+            borderVisible: false,
+            textColor: '#FFFFFF'
+        },
+        timeScale: {
+            borderVisible: false,
+            timeVisible: true,
+            tickMarkFormatter: (time) => `+${(time * 0.120).toFixed(2)}s`
+        }
+    });
+
+    const mddSeries = chart.addAreaSeries({
+        topColor: 'rgba(220, 20, 60, 0.05)',
+        bottomColor: 'rgba(220, 20, 60, 0.4)',
+        lineColor: '#DC143C',
+        lineWidth: 1
+    });
+
+    mddSeries.createPriceLine({
+        price: 0.0,
+        color: 'rgba(255, 255, 255, 0.2)',
+        lineWidth: 1,
+        lineStyle: LightweightCharts.LineStyle.Solid,
+        axisLabelVisible: true,
+        title: '0.0%'
+    });
+
+    const upperVolSeries = chart.addLineSeries({
+        color: 'rgba(220, 20, 60, 0.2)',
+        lineWidth: 1,
+        lineStyle: LightweightCharts.LineStyle.Dashed
+    });
+
+    const lowerVolSeries = chart.addLineSeries({
+        color: 'rgba(220, 20, 60, 0.2)',
+        lineWidth: 1,
+        lineStyle: LightweightCharts.LineStyle.Dashed
+    });
+
+    const mddData = [];
+    const upperData = [];
+    const lowerData = [];
+    const len = riskData.ts.length;
+
+    for (let i = 0; i < len; i++) {
+        mddData.push({ time: i, value: riskData.mdd[i] });
+        upperData.push({ time: i, value: riskData.mddUpper[i] });
+        lowerData.push({ time: i, value: riskData.mddLower[i] });
+    }
+
+    mddSeries.setData(mddData);
+    upperVolSeries.setData(upperData);
+    lowerVolSeries.setData(lowerData);
+
+    chart.timeScale().fitContent();
+
     return chart;
 }
 function renderLatencyProfiler(latData) {

@@ -8,7 +8,11 @@ self.onmessage = function(e) {
             let rawEq = new Float64Array(5000);
             let rawUpper = new Float64Array(5000);
             let rawLower = new Float64Array(5000);
+            let rawMdd = new Float64Array(5000);
+            let rawMddUpper = new Float64Array(5000);
+            let rawMddLower = new Float64Array(5000);
             let currentEq = 1000000.00;
+            let peakEq = 1000000.00;
             const mu = 0.5;
             const sigma = 45.0;
             const dt = 0.120;
@@ -28,12 +32,33 @@ self.onmessage = function(e) {
                 let cone = Math.sqrt(i + 1) * 60.0;
                 rawUpper[i] = currentEq + cone + Math.random() * 5.0;
                 rawLower[i] = currentEq - cone - Math.random() * 5.0;
+                
+                if (currentEq > peakEq) peakEq = currentEq;
+                rawMdd[i] = ((currentEq - peakEq) / peakEq) * 100.0;
+            }
+
+            for (let i = 0; i < 5000; i++) {
+                if (i < 20) {
+                    rawMddUpper[i] = rawMdd[i];
+                    rawMddLower[i] = rawMdd[i];
+                } else {
+                    let sum = 0;
+                    for (let j = i - 19; j <= i; j++) sum += rawMdd[j];
+                    let mean = sum / 20.0;
+                    
+                    let varianceSum = 0;
+                    for (let j = i - 19; j <= i; j++) varianceSum += Math.pow(rawMdd[j] - mean, 2);
+                    let std = Math.sqrt(varianceSum / 20.0);
+                    
+                    rawMddUpper[i] = rawMdd[i] + std;
+                    rawMddLower[i] = rawMdd[i] - std;
+                }
             }
             
             self.postMessage({ 
                 type: 'MASTER_SYNTHESIZED', 
-                payload: [rawTs.buffer, rawEq.buffer, rawUpper.buffer, rawLower.buffer] 
-            }, [rawTs.buffer, rawEq.buffer, rawUpper.buffer, rawLower.buffer]);
+                payload: [rawTs.buffer, rawEq.buffer, rawUpper.buffer, rawLower.buffer, rawMdd.buffer, rawMddUpper.buffer, rawMddLower.buffer] 
+            }, [rawTs.buffer, rawEq.buffer, rawUpper.buffer, rawLower.buffer, rawMdd.buffer, rawMddUpper.buffer, rawMddLower.buffer]);
         } catch (err) {
             console.error("Worker Error in SYNTHESIZE_MASTER:", err);
         }
