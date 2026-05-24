@@ -101,12 +101,11 @@ self.onmessage = function(e) {
             let prBuf = new Float64Array(len);
             let qBuf = new Float64Array(len);
             let tBuf = new Float64Array(len);
-            const baseTime = Date.now() / 1000;
             for (let i = 0; i < len; i++) {
                 pBuf[i] = hjbData[i].p;
                 prBuf[i] = hjbData[i].pr;
                 qBuf[i] = hjbData[i].q;
-                tBuf[i] = baseTime + (i * 12.0);
+                tBuf[i] = i * 12.0;
             }
             self.postMessage({
                 type: 'HJB_PROCESSED',

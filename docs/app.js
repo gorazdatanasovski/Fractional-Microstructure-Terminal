@@ -593,12 +593,6 @@ function renderHJBProfiler(hjbData) {
             const q = new Float64Array(e.data.payload.q);
             const t = new Float64Array(e.data.payload.t);
             
-            const scaleFactor = window.uplotMaster ? Math.floor(window.uplotMaster.data[0].length / hjbData.length) : 100;
-            if (window.uplotMaster) {
-                for (let i = 0; i < t.length; i++) {
-                    t[i] = window.uplotMaster.data[0][Math.min(i * scaleFactor, window.uplotMaster.data[0].length - 1)];
-                }
-            }
             let data = [t, p, pr, q];
     
     // Bounded Micro-Variance Scaling
@@ -631,17 +625,15 @@ function renderHJBProfiler(hjbData) {
         series: [
             {},
             { label: "Physical", stroke: "#A5C9FF", width: 1, value: (u, v) => v != null ? priceFormatter(v) : "--" },
-            { label: "Reservation", stroke: "#00F2FF", width: 1, dash: [5, 5], value: (u, v) => v != null ? priceFormatter(v) : "--" },
-            { label: "Inventory", stroke: "#FF4D6D", width: 1, scale: "q", value: (u, v) => v != null ? formatVolume(v) : "--" }
+            { label: "Reservation", stroke: "#D4AF37", width: 1, dash: [5, 5], value: (u, v) => v != null ? priceFormatter(v) : "--" },
+            { label: "Inventory", stroke: "#DC143C", width: 1, paths: uPlot.paths.stepped({ align: 1 }), fill: "rgba(220, 20, 60, 0.3)", scale: "q", value: (u, v) => v != null ? formatVolume(v) : "--" }
         ],
         axes: [
             { 
                 stroke: "#A5C9FF", 
                 grid: { stroke: "rgba(255,255,255,0.02)" },
                 values: (u, vals) => vals.map(time => {
-                    const startX_original = window.uplotMaster ? window.uplotMaster.data[0][0] : time;
-                    const deltaT = time - startX_original;
-                    return `+${deltaT.toFixed(2)}s`;
+                    return `+${time.toFixed(2)}s`;
                 })
             },
             { 
