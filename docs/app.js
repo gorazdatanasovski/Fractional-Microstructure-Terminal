@@ -422,7 +422,35 @@ function renderRiskTelemetry(riskData) {
 
     const zeroY = ch - ((0 - minMdd) / range) * ch;
 
-    // Gradient Fill
+    // Sequence 1: Gridlines
+    ctx.lineWidth = 1;
+    const yIntervals = 4;
+    for (let j = 0; j <= yIntervals; j++) {
+        const val = minMdd + (j / yIntervals) * range;
+        const y = ch - ((val - minMdd) / range) * ch;
+        
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(cw, y);
+        if (j === yIntervals) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        } else {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+        }
+        ctx.stroke();
+    }
+
+    const xIntervals = 6;
+    for (let j = 0; j <= xIntervals; j++) {
+        const x = (j / xIntervals) * cw;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, ch);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+        ctx.stroke();
+    }
+
+    // Sequence 2: Crimson MDD area gradient
     ctx.beginPath();
     for (let i = 0; i < len; i++) {
         const x = (i / (len - 1)) * cw;
@@ -452,13 +480,39 @@ function renderRiskTelemetry(riskData) {
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Baseline
-    ctx.beginPath();
-    ctx.moveTo(0, zeroY);
-    ctx.lineTo(cw, zeroY);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    // Sequence 3: Text labels
+    ctx.font = '10px "JetBrains Mono", monospace';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    
+    // Y-Axis Labels
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    for (let j = 0; j <= yIntervals; j++) {
+        const val = minMdd + (j / yIntervals) * range;
+        const y = ch - ((val - minMdd) / range) * ch;
+        let textY = y;
+        if (j === yIntervals) textY += 8;
+        if (j === 0) textY -= 8;
+        ctx.fillText(val.toFixed(2) + '%', 4, textY);
+    }
+
+    // X-Axis Labels
+    ctx.textBaseline = 'bottom';
+    for (let j = 0; j <= xIntervals; j++) {
+        const x = (j / xIntervals) * cw;
+        const seconds = (j / xIntervals) * 600;
+        let textX = x;
+        if (j === 0) {
+            ctx.textAlign = 'left';
+            textX = 4;
+        } else if (j === xIntervals) {
+            ctx.textAlign = 'right';
+            textX = cw - 4;
+        } else {
+            ctx.textAlign = 'center';
+        }
+        ctx.fillText('+' + seconds.toFixed(0) + 's', textX, ch - 4);
+    }
 
     return canvas;
 }
